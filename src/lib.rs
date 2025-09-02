@@ -75,9 +75,6 @@ fn attach(handle: HINSTANCE) {
 
             let (base, size) = get_base_addr_and_size();
 
-            let mainwindow_hwnd =
-                get_mainwindow_hwnd().expect("Could not get the game's window.");
-
             if base == 0 || size == 0 {
                 log::error!(
                     "Could not get the module base/size. Base: {} Size: {}",
@@ -166,13 +163,8 @@ fn attach(handle: HINSTANCE) {
                     .unwrap();
             }
 
-            // Services and input routing
+            // Services (skip standalone input and wndproc in Nexus to avoid early startup conflicts)
             start_statistics_server();
-            init_keybinds();
-
-            // MUST BE CALLED IN THIS ORDER
-            start_mouse_input_thread();
-            initialize_controls(mainwindow_hwnd);
         }
     });
 }

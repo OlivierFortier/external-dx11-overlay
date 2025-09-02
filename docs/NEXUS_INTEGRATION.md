@@ -21,13 +21,13 @@ This crate optionally integrates with the `nexus` framework via the `nexus` Carg
   - `toggle_window()` bound to a keybind (`ALT+SHIFT+1`)
 
 ### Present Hook and Rendering in Nexus Mode
-Nexus builds now initialize the overlay pipeline as well:
+Nexus builds initialize the overlay pipeline while avoiding conflicts with Nexus UI/input:
 - Start MMF thread (shared texture headers)
 - Discover and hook IDXGISwapChain::Present
-- Start statistics server and standalone keybinds
-- Install custom WndProc and mouse input routing
+- Start statistics server
+- Skip standalone keybinds and WndProc/mouse hooks (Nexus owns input)
 
-This ensures the Blish HUD texture overlay and the existing keybind system work the same in both modes. Unload attempts to disable the Present hook regardless of mode.
+The overlay draw backs up and restores D3D11 pipeline state (RTV/DSV, blend, shaders, SRV/sampler, topology) to prevent black screens or flicker during early startup. Unload attempts to disable the Present hook regardless of mode.
 
 ### Build
 Dependencies `nexus` and `rfd` are optional and only compiled when the `nexus` feature is enabled.

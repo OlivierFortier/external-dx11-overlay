@@ -166,15 +166,40 @@ pub fn detoured_present(swapchain: IDXGISwapChain, sync_interval: u32, flags: u3
 
         let ctx = &state.context;
 
-        ctx.RSSetViewports(Some(&[state.viewport]));
+        // Backup critical pipeline state we modify
+        let mut prev_rtv_arr: [Option<ID3D11RenderTargetView>; 1] = [None];
+        let mut prev_dsv: Option<windows::Win32::Graphics::Direct3D11::ID3D11DepthStencilView> = None;
+        let mut prev_blend: Option<ID3D11BlendState> = None;
+        let mut prev_blend_factor: [f32; 4] = [0.0; 4];
+        let mut prev_sample_mask: u32 = 0xffffffff;
+        let mut prev_ps_srv0_arr: [Option<ID3D11ShaderResourceView>; 1] = [None];
+        let mut prev_ps_sampler0_arr: [Option<ID3D11SamplerState>; 1] = [None];
+        let mut prev_vs: Option<ID3D11VertexShader> = None;
+        let mut prev_ps: Option<ID3D11PixelShader> = None;
+        let mut prev_vs_num_classes: u32 = 0;
+        let mut prev_ps_num_classes: u32 = 0;
+        let mut prev_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+        unsafe {
+            // Render targets
+            ctx.OMGetRenderTargets(Some(&mut prev_rtv_arr), Some(&mut prev_dsv));
+            // Blend state
+            ctx.OMGetBlendState(Some(&mut prev_blend), Some(&mut prev_blend_factor), Some(&mut prev_sample_mask));
+            // Shaders
+            ctx.VSGetShader(&mut prev_vs, None, Some(&mut prev_vs_num_classes));
+            ctx.PSGetShader(&mut prev_ps, None, Some(&mut prev_ps_num_classes));
+            // Resources and samplers
+            ctx.PSGetShaderResources(0, Some(&mut prev_ps_srv0_arr));
+            ctx.PSGetSamplers(0, Some(&mut prev_ps_sampler0_arr));
+            // Topology
+            prev_topology = ctx.IAGetPrimitiveTopology();
+        }
+
+        // Apply our pipeline state (avoid forcing viewport to reduce conflicts)
         ctx.OMSetBlendState(&state.blend_state, Some(&state.blend_factor), 0xffffffff);
         ctx.OMSetRenderTargets(Some(&[state.render_target_view.clone()]), None);
-
-        //Shaders
         ctx.VSSetShader(&state.vertex_shader, None);
         ctx.PSSetShader(&state.pixel_shader, None);
-
-        // Bind SRV and sampler
         ctx.PSSetShaderResources(
             0,
             Some(&[Some(
@@ -185,10 +210,23 @@ pub fn detoured_present(swapchain: IDXGISwapChain, sync_interval: u32, flags: u3
             )]),
         );
         ctx.PSSetSamplers(0, Some(&[Some(state.sampler_state.clone())]));
-
-        // Draw full-screen triangle
         ctx.IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         ctx.Draw(3, 0);
+
+        // Restore previous pipeline state
+        unsafe {
+            let rtv_restore = [prev_rtv_arr[0].clone()];
+            let dsv_restore = prev_dsv.as_ref();
+            ctx.OMSetRenderTargets(Some(&rtv_restore), dsv_restore);
+            ctx.OMSetBlendState(prev_blend.as_ref(), Some(&prev_blend_factor), prev_sample_mask);
+            if let Some(vs) = prev_vs.as_ref() { ctx.VSSetShader(vs, None); } else { ctx.VSSetShader(None, None); }
+            if let Some(ps) = prev_ps.as_ref() { ctx.PSSetShader(ps, None); } else { ctx.PSSetShader(None, None); }
+            let srv_restore = [prev_ps_srv0_arr[0].clone()];
+            ctx.PSSetShaderResources(0, Some(&srv_restore));
+            let samp_restore = [prev_ps_sampler0_arr[0].clone()];
+            ctx.PSSetSamplers(0, Some(&samp_restore));
+            ctx.IASetPrimitiveTopology(prev_topology);
+        }
 
         //Stats
         let frame_time_custom = start.elapsed().as_nanos() as u32;
