@@ -8,6 +8,9 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[cfg(feature = "nexus")]
+use std::sync::Mutex;
+
 use super::{
     DEBUG_FEATURES,
     debug_overlay::{OVERLAY_MODE, overlay_mode, refresh_overlay_buffer},
@@ -53,6 +56,19 @@ pub fn start_statistics_server() {
                     );*/
                 }
             }
+
+            // #[cfg(feature = "nexus")]
+            // {
+            //     // Update the nexus stats storage
+            //     use crate::debug::debug_overlay::CURRENT_STATS;
+            //     if let Some(current_stats) = CURRENT_STATS.get() {
+            //         if let Ok(mut nexus_stats) = current_stats.lock() {
+            //             *nexus_stats = stats.clone();
+            //         }
+            //     }
+            // }
+
+            #[cfg(not(feature = "nexus"))]
             if last_refresh.elapsed() >= refresh_interval
                 && DEBUG_FEATURES.debug_overlay_enabled.load(Ordering::Relaxed)
                 && OVERLAY_MODE.load(Ordering::Relaxed) == overlay_mode::STAT_MODE
@@ -81,3 +97,13 @@ pub fn send_statistic(key: u32, value: u32) {
         .send((key, value))
         .ok();
 }
+
+// Get current statistics (for nexus/imgui display)
+// #[cfg(feature = "nexus")]
+// pub fn get_current_stats() -> HashMap<u32, u32> {
+//     use crate::debug::debug_overlay::CURRENT_STATS;
+//     CURRENT_STATS.get_or_init(|| Mutex::new(HashMap::new()))
+//         .lock()
+//         .unwrap()
+//         .clone()
+// }
