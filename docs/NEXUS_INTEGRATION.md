@@ -20,20 +20,24 @@ This crate optionally integrates with the `nexus` framework via the `nexus` Carg
   - Launch/Stop/Remove actions
   - `toggle_window()` bound to a keybind (`ALT+SHIFT+1`)
 
-### Present Hook and Rendering Ownership
-The intention is for Nexus builds to avoid installing the Present hook and to let Nexus manage rendering/ImGui. However, several `#[cfg(not(feature = "nexus"))]` guards in `src/lib.rs` are commented out. As a result, Present hooking and input/keybind setup still occur even when `nexus` is enabled.
+### Present Hook and Rendering in Nexus Mode
+Nexus builds now initialize the overlay pipeline as well:
+- Start MMF thread (shared texture headers)
+- Discover and hook IDXGISwapChain::Present
+- Start statistics server and standalone keybinds
+- Install custom WndProc and mouse input routing
 
-If you want strict separation:
-1) Reinstate the `#[cfg(not(feature = "nexus"))]` guards around:
-   - MMF thread if not required under Nexus
-   - Present address discovery and hook initialization
-   - Statistics server and standalone keybinds
-   - Mouse input thread and WndProc replacement
-2) Provide Nexus-side equivalents or no-ops where appropriate
+This ensures the Blish HUD texture overlay and the existing keybind system work the same in both modes. Unload attempts to disable the Present hook regardless of mode.
 
 ### Build
-Enable feature:
+Dependencies `nexus` and `rfd` are optional and only compiled when the `nexus` feature is enabled.
 
+- Standalone (default):
+```bash
+cargo build --release
+```
+
+- Nexus mode:
 ```bash
 cargo build --features nexus --release
 ```

@@ -64,33 +64,35 @@ fn attach(handle: HINSTANCE) {
         log::info!("Attaching to process");
         enable_logging();
 
-        //Do this early - only needed for external overlay functionality
-        // #[cfg(not(feature = "nexus"))]
-        start_mmf_thread();
+        // Record our handle for both modes
+        unsafe { HANDLE_NO = handle.0 as u64 };
 
-        let (base, size) = get_base_addr_and_size();
-
-        // #[cfg(not(feature = "nexus"))]
-        let mainwindow_hwnd = get_mainwindow_hwnd().expect("Could not get the game's window.");
-
-        if base == 0 || size == 0 {
-            log::error!(
-                "Could not get the module base/size. Base: {} Size: {}",
-                base,
-                size
-            );
-            unsafe { FreeLibraryAndExitThread(HINSTANCE { 0: handle.0 }, 0) };
-        }
-
-        let address_finder = AddressFinder {
-            base_addr: base,
-            module_size: size,
-        };
-
-        // Only set up Present hook if not running under Nexus
-        // Nexus handles its own rendering and ImGui integration
-        // #[cfg(not(feature = "nexus"))]
+        // Standalone mode: initialize everything needed for external overlay
+        #[cfg(not(feature = "nexus"))]
         {
+            // MMF is only required for the external overlay rendering path
+            start_mmf_thread();
+
+            let (base, size) = get_base_addr_and_size();
+
+            let mainwindow_hwnd =
+                get_mainwindow_hwnd().expect("Could not get the game's window.");
+
+            if base == 0 || size == 0 {
+                log::error!(
+                    "Could not get the module base/size. Base: {} Size: {}",
+                    base,
+                    size
+                );
+                unsafe { FreeLibraryAndExitThread(HINSTANCE { 0: handle.0 }, 0) };
+            }
+
+            let address_finder = AddressFinder {
+                base_addr: base,
+                module_size: size,
+            };
+
+            // Setup Present hook for rendering
             let present_addr = address_finder.find_addr_present();
 
             if present_addr == 0 {
@@ -108,38 +110,78 @@ fn attach(handle: HINSTANCE) {
                     .enable()
                     .unwrap();
             }
-        }
 
-        #[cfg(feature = "nexus")]
-        {
-            log::info!("Skipping Present hook setup - using Nexus rendering integration");
-        }
-
-        unsafe { HANDLE_NO = handle.0 as u64 };
-
-        // These components are only needed for standalone mode, not when using Nexus
-        // #[cfg(not(feature = "nexus"))]
-
+            // Standalone services and input routing
             start_statistics_server();
             init_keybinds();
 
-            //MUST BE CALLED IN THIS ORDER
+            // MUST BE CALLED IN THIS ORDER
             start_mouse_input_thread();
             initialize_controls(mainwindow_hwnd);
+        }
 
-
+        // Nexus mode: Nexus owns rendering and input; skip standalone setup
         #[cfg(feature = "nexus")]
         {
-            log::info!("Skipping standalone input/keybind setup - using Nexus integration");
+            log::info!("Nexus feature enabled: initializing overlay and keybinds within Nexus context");
+
+            // Start MMF for shared texture headers
+            start_mmf_thread();
+
+            let (base, size) = get_base_addr_and_size();
+
+            let mainwindow_hwnd =
+                get_mainwindow_hwnd().expect("Could not get the game's window.");
+
+            if base == 0 || size == 0 {
+                log::error!(
+                    "Could not get the module base/size. Base: {} Size: {}",
+                    base,
+                    size
+                );
+                unsafe { FreeLibraryAndExitThread(HINSTANCE { 0: handle.0 }, 0) };
+            }
+
+            let address_finder = AddressFinder {
+                base_addr: base,
+                module_size: size,
+            };
+
+            // Setup Present hook for rendering
+            let present_addr = address_finder.find_addr_present();
+
+            if present_addr == 0 {
+                log::error!("Could not find the address of DirectX11 Present.");
+                unsafe { FreeLibraryAndExitThread(HINSTANCE { 0: handle.0 }, 0) };
+            }
+
+            unsafe {
+                present_hook
+                    .initialize(
+                        mem::transmute(present_addr as *const ()),
+                        ui::get_detoured_present(),
+                    )
+                    .unwrap()
+                    .enable()
+                    .unwrap();
+            }
+
+            // Services and input routing
+            start_statistics_server();
+            init_keybinds();
+
+            // MUST BE CALLED IN THIS ORDER
+            start_mouse_input_thread();
+            initialize_controls(mainwindow_hwnd);
         }
     });
 }
 
 fn detatch() {
     log::info!("Detatching from process");
-    // #[cfg(not(feature = "nexus"))]
     unsafe {
-        present_hook.disable().unwrap();
+        // Best-effort disable; ignore if not initialized
+        let _ = present_hook.disable();
     }
 }
 fn enable_logging() {

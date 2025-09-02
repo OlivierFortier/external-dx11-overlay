@@ -12,7 +12,8 @@ crate-type = ["cdylib"]
 
 [features]
 default =[]
-nexus = []
+# Enable Nexus integration (and its UI file dialog) when the `nexus` feature is set
+nexus = ["dep:nexus", "dep:rfd"]
 
 [dependencies]
 retour = { version="0.3.1", features=["static-detour"]}
@@ -20,8 +21,9 @@ log = "0.4"
 fern = "0.7"
 chrono = "*"
 fontdue = "*"
-nexus = { git = "https://github.com/zerthox/nexus-rs", features = ["log", "log_filter", "hook"] }
-rfd = "0.15"
+# Only include Nexus and rfd when the `nexus` feature is enabled
+nexus = { git = "https://github.com/zerthox/nexus-rs", features = ["log", "log_filter", "hook"], optional = true }
+rfd = { version = "0.15", optional = true }
 
 [dependencies.windows]
 version = "0.56"

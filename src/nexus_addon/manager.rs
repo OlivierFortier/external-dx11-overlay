@@ -311,9 +311,7 @@ impl ExeManager {
      * # Returns
      * Number of currently running processes.
      */
-    pub fn is_process_running(&self) -> bool {
-        self.running_process.is_some()
-    }
+    // Deprecated: use `is_running()` instead
 
     pub fn launch_on_startup(&mut self) -> &mut bool {
         &mut self.launch_on_startup
