@@ -10,13 +10,17 @@ use std::{
 use windows::Win32::{
     Foundation::{HWND, LPARAM, LRESULT, WPARAM},
     UI::{
-        Input::KeyboardAndMouse::{ReleaseCapture, SetCapture, SetFocus},
+        Input::KeyboardAndMouse::*,
         WindowsAndMessaging::{
-            CallWindowProcW, DefWindowProcW, GWLP_WNDPROC, SetForegroundWindow, SetWindowLongPtrW,
-            WM_ACTIVATE, WM_ACTIVATEAPP, WM_KEYDOWN, WM_KILLFOCUS, WM_MOUSEMOVE, WM_SETFOCUS,
+            CallWindowProcW, DefWindowProcW, GWLP_WNDPROC, SetWindowLongPtrW, WM_KEYDOWN,
+            WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_RBUTTONDOWN, WM_RBUTTONUP,
         },
     },
 };
+#[cfg(not(feature = "nexus"))]
+use windows::Win32::UI::WindowsAndMessaging::{WM_ACTIVATE, WM_ACTIVATEAPP, WM_KILLFOCUS, WM_SETFOCUS};
+use windows::Win32::UI::WindowsAndMessaging::GetClientRect;
+use windows::Win32::Foundation::RECT;
 
 use crate::{
     globals::{self, ORIGINAL_WNDPROC},
@@ -71,23 +75,40 @@ unsafe extern "system" fn wnd_proc(
     'local_handling: {
         match msg {
             //Mouse
-            WM_MOUSEMOVE => {
-                let x = get_x_lparam(lparam);
-                let y = get_y_lparam(lparam);
+            WM_MOUSEMOVE | WM_LBUTTONDOWN | WM_LBUTTONUP | WM_RBUTTONDOWN | WM_RBUTTONUP => {
+                let mut x = get_x_lparam(lparam);
+                let mut y = get_y_lparam(lparam);
+
+                // Scale to Blish HUD texture resolution if available to avoid click offset
+                if let Some(mmf_arc) = crate::ui::MMF_DATA.get() {
+                    if let Ok(mmf) = mmf_arc.read() {
+                        let mmf_w = mmf.width as i32;
+                        let mmf_h = mmf.height as i32;
+                        if mmf_w > 0 && mmf_h > 0 {
+                            unsafe {
+                                let mut rc: RECT = RECT::default();
+                                if GetClientRect(hwnd, &mut rc).is_ok() {
+                                    let client_w = (rc.right - rc.left).max(1);
+                                    let client_h = (rc.bottom - rc.top).max(1);
+                                    x = (x as i64 * mmf_w as i64 / client_w as i64) as i32;
+                                    y = (y as i64 * mmf_h as i64 / client_h as i64) as i32;
+                                }
+                            }
+                        }
+                    }
+                }
 
                 //let is_overlay_pixel = ui::is_overlay_pixel(x as u32, y as u32);
 
                 //Mouse up/down are seemingly handled globally.
                 //So we only need to pass MOUSEMOVE.
                 let id = match msg {
-                    /*WM_LBUTTONDOWN => 0,
-                    WM_LBUTTONUP => 1,*/
+                    WM_LBUTTONDOWN => 0,
+                    WM_LBUTTONUP => 1,
                     WM_MOUSEMOVE => 2,
-                    /*WM_RBUTTONDOWN => 3,
-                    WM_RBUTTONUP => 4,*/
-                    _ => {
-                        break 'local_handling;
-                    }
+                    WM_RBUTTONDOWN => 3,
+                    WM_RBUTTONUP => 4,
+                    _ => break 'local_handling,
                 };
 
                 //Send packet to listening thread.
@@ -107,15 +128,13 @@ unsafe extern "system" fn wnd_proc(
                     }
                 }
             }
-            WM_SETFOCUS => grab_focus(hwnd),
-            WM_KILLFOCUS => release_focus(),
-            WM_ACTIVATEAPP | WM_ACTIVATE => {
-                if wparam.0 != 0 {
-                    grab_focus(hwnd);
-                } else {
-                    release_focus();
-                }
-            }
+            // Focus management can interfere with Nexus; disable under Nexus builds
+            #[cfg(not(feature = "nexus"))]
+            WM_SETFOCUS => { grab_focus(hwnd) }
+            #[cfg(not(feature = "nexus"))]
+            WM_KILLFOCUS => { release_focus() }
+            #[cfg(not(feature = "nexus"))]
+            WM_ACTIVATEAPP | WM_ACTIVATE => { if wparam.0 != 0 { grab_focus(hwnd); } else { release_focus(); } }
             _ => {}
         }
     }
@@ -128,18 +147,10 @@ unsafe extern "system" fn wnd_proc(
     }
 }
 
-fn grab_focus(hwnd: HWND) {
-    unsafe {
-        SetForegroundWindow(hwnd).ok().ok();
-        SetFocus(hwnd);
-        SetCapture(hwnd);
-    }
-}
-fn release_focus() {
-    unsafe {
-        ReleaseCapture().ok();
-    }
-}
+#[cfg(not(feature = "nexus"))]
+fn grab_focus(_hwnd: HWND) {}
+#[cfg(not(feature = "nexus"))]
+fn release_focus() {}
 
 pub fn start_mouse_input_thread() {
     let (tx, rx) = channel::<MouseInputPacket>();

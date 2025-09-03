@@ -14,10 +14,7 @@ use ui::mmf::start_mmf_thread;
 use utils::{get_base_addr_and_size, get_mainwindow_hwnd};
 use windows::Win32::{
     Foundation::HINSTANCE,
-    System::{
-        LibraryLoader::FreeLibraryAndExitThread,
-        SystemServices::{DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH},
-    },
+    System::LibraryLoader::FreeLibraryAndExitThread,
 };
 
 #[cfg(feature = "nexus")]
@@ -74,6 +71,9 @@ fn attach(handle: HINSTANCE) {
             start_mmf_thread();
 
             let (base, size) = get_base_addr_and_size();
+
+            let mainwindow_hwnd =
+                get_mainwindow_hwnd().expect("Could not get the game's window.");
 
             if base == 0 || size == 0 {
                 log::error!(
@@ -163,8 +163,12 @@ fn attach(handle: HINSTANCE) {
                     .unwrap();
             }
 
-            // Services (skip standalone input and wndproc in Nexus to avoid early startup conflicts)
+            // Services and input/keybinds under Nexus
+            // We avoid focus grabbing inside wndproc when built with the nexus feature.
             start_statistics_server();
+            init_keybinds();
+            start_mouse_input_thread();
+            initialize_controls(mainwindow_hwnd);
         }
     });
 }

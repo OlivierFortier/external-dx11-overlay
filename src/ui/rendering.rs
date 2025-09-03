@@ -147,9 +147,17 @@ pub fn detoured_present(swapchain: IDXGISwapChain, sync_interval: u32, flags: u3
             return_present!();
         }
 
-        //Resize occured
-        if state.height != mmfdata.height || state.width != mmfdata.width {
+        // Ensure viewport/backbuffer RTV match current swapchain size
+        let mut sc_desc = DXGI_SWAP_CHAIN_DESC::default();
+        swapchain.GetDesc(&mut sc_desc).ok();
+        if state.height != sc_desc.BufferDesc.Height || state.width != sc_desc.BufferDesc.Width {
             state.resize(&swapchain);
+        }
+
+        // Ensure SRVs match current Blish HUD texture addresses/sizes
+        if state.height != mmfdata.height || state.width != mmfdata.width
+            || state.shader_resource_views[texture_idx].is_none()
+        {
             if update_textures(&mut state, [mmfdata.addr1, mmfdata.addr2]).is_err() {
                 state.context.PSSetShaderResources(0, Some(&[None]));
                 drop(mmfdata);
@@ -179,8 +187,9 @@ pub fn detoured_present(swapchain: IDXGISwapChain, sync_interval: u32, flags: u3
         let mut prev_vs_num_classes: u32 = 0;
         let mut prev_ps_num_classes: u32 = 0;
         let mut prev_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        // Viewport backup skipped to avoid API binding variance; most hosts reset per-frame
 
-        unsafe {
+        {
             // Render targets
             ctx.OMGetRenderTargets(Some(&mut prev_rtv_arr), Some(&mut prev_dsv));
             // Blend state
@@ -193,11 +202,14 @@ pub fn detoured_present(swapchain: IDXGISwapChain, sync_interval: u32, flags: u3
             ctx.PSGetSamplers(0, Some(&mut prev_ps_sampler0_arr));
             // Topology
             prev_topology = ctx.IAGetPrimitiveTopology();
+            // Viewports not backed up
         }
 
-        // Apply our pipeline state (avoid forcing viewport to reduce conflicts)
+        // Apply our pipeline state (avoid forcing viewport/state beyond what we restore)
         ctx.OMSetBlendState(&state.blend_state, Some(&state.blend_factor), 0xffffffff);
         ctx.OMSetRenderTargets(Some(&[state.render_target_view.clone()]), None);
+        // Ensure viewport equals backbuffer size to prevent overflow
+        ctx.RSSetViewports(Some(&[state.viewport]));
         ctx.VSSetShader(&state.vertex_shader, None);
         ctx.PSSetShader(&state.pixel_shader, None);
         ctx.PSSetShaderResources(
@@ -214,7 +226,7 @@ pub fn detoured_present(swapchain: IDXGISwapChain, sync_interval: u32, flags: u3
         ctx.Draw(3, 0);
 
         // Restore previous pipeline state
-        unsafe {
+        {
             let rtv_restore = [prev_rtv_arr[0].clone()];
             let dsv_restore = prev_dsv.as_ref();
             ctx.OMSetRenderTargets(Some(&rtv_restore), dsv_restore);
@@ -226,6 +238,7 @@ pub fn detoured_present(swapchain: IDXGISwapChain, sync_interval: u32, flags: u3
             let samp_restore = [prev_ps_sampler0_arr[0].clone()];
             ctx.PSSetSamplers(0, Some(&samp_restore));
             ctx.IASetPrimitiveTopology(prev_topology);
+            // Viewport restore skipped
         }
 
         //Stats
