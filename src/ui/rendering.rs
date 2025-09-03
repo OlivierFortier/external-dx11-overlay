@@ -54,26 +54,43 @@ pub struct OverlayState {
     pixel_shader: ID3D11PixelShader,
     viewport: D3D11_VIEWPORT,
     blend_factor: [f32; 4],
+    last_texture_handles: [u64; 2],
 }
 
 impl OverlayState {
     pub fn resize(&mut self, swapchain: &IDXGISwapChain) {
-        let mut desc = DXGI_SWAP_CHAIN_DESC::default();
+        // Use actual backbuffer texture to get the true size in current mode
         unsafe {
-            swapchain.GetDesc(&mut desc).ok();
+            if let Ok(buffer) = swapchain.GetBuffer::<ID3D11Texture2D>(0) {
+                let mut bb_desc = windows::Win32::Graphics::Direct3D11::D3D11_TEXTURE2D_DESC::default();
+                buffer.GetDesc(&mut bb_desc);
+                self.viewport = D3D11_VIEWPORT {
+                    TopLeftX: 0.0,
+                    TopLeftY: 0.0,
+                    Width: bb_desc.Width as f32,
+                    Height: bb_desc.Height as f32,
+                    MinDepth: 0.0,
+                    MaxDepth: 1.0,
+                };
+                self.width = bb_desc.Width;
+                self.height = bb_desc.Height;
+            } else {
+                let mut desc = DXGI_SWAP_CHAIN_DESC::default();
+                swapchain.GetDesc(&mut desc).ok();
+                self.viewport = D3D11_VIEWPORT {
+                    TopLeftX: 0.0,
+                    TopLeftY: 0.0,
+                    Width: desc.BufferDesc.Width as f32,
+                    Height: desc.BufferDesc.Height as f32,
+                    MinDepth: 0.0,
+                    MaxDepth: 1.0,
+                };
+                self.width = desc.BufferDesc.Width;
+                self.height = desc.BufferDesc.Height;
+            }
+            // Recreate RTV for current backbuffer
+            self.render_target_view = create_render_target_view(swapchain, &self.device);
         }
-        self.viewport = D3D11_VIEWPORT {
-            TopLeftX: 0.0,
-            TopLeftY: 0.0,
-            Width: desc.BufferDesc.Width as f32,
-            Height: desc.BufferDesc.Height as f32,
-            MinDepth: 0.0,
-            MaxDepth: 1.0,
-        };
-        self.width = desc.BufferDesc.Width;
-        self.height = desc.BufferDesc.Height;
-
-        self.render_target_view = create_render_target_view(swapchain, &self.device);
     }
     pub fn shutdown(&mut self) {
         self.overlay_textures = [None, None];
@@ -147,16 +164,33 @@ pub fn detoured_present(swapchain: IDXGISwapChain, sync_interval: u32, flags: u3
             return_present!();
         }
 
-        // Ensure viewport/backbuffer RTV match current swapchain size
-        let mut sc_desc = DXGI_SWAP_CHAIN_DESC::default();
-        swapchain.GetDesc(&mut sc_desc).ok();
-        if state.height != sc_desc.BufferDesc.Height || state.width != sc_desc.BufferDesc.Width {
-            state.resize(&swapchain);
+        // Ensure backbuffer size/RTV match current swapchain backbuffer
+        if let Ok(buffer) = swapchain.GetBuffer::<ID3D11Texture2D>(0) {
+            let mut bb_desc = windows::Win32::Graphics::Direct3D11::D3D11_TEXTURE2D_DESC::default();
+            buffer.GetDesc(&mut bb_desc);
+            if state.height != bb_desc.Height || state.width != bb_desc.Width {
+                state.resize(&swapchain);
+            }
+        } else {
+            let mut sc_desc = DXGI_SWAP_CHAIN_DESC::default();
+            swapchain.GetDesc(&mut sc_desc).ok();
+            if state.height != sc_desc.BufferDesc.Height || state.width != sc_desc.BufferDesc.Width {
+                state.resize(&swapchain);
+            }
         }
 
-        // Ensure SRVs match current Blish HUD texture addresses/sizes
-        if state.height != mmfdata.height || state.width != mmfdata.width
-            || state.shader_resource_views[texture_idx].is_none()
+        // Ensure RTV exists
+        if state.render_target_view.is_none() {
+            state.render_target_view = create_render_target_view(&swapchain, &state.device);
+            if state.render_target_view.is_none() {
+                return_present!();
+            }
+        }
+
+        // Ensure SRVs match current Blish HUD texture handles
+        let current_handles = [mmfdata.addr1, mmfdata.addr2];
+        if state.shader_resource_views[texture_idx].is_none()
+            || state.last_texture_handles != current_handles
         {
             if update_textures(&mut state, [mmfdata.addr1, mmfdata.addr2]).is_err() {
                 state.context.PSSetShaderResources(0, Some(&[None]));
@@ -165,6 +199,7 @@ pub fn detoured_present(swapchain: IDXGISwapChain, sync_interval: u32, flags: u3
                 cleanup_shutdown();
                 return_present!();
             }
+            state.last_texture_handles = current_handles;
         }
 
         //Make sure SRV is valid
@@ -208,8 +243,7 @@ pub fn detoured_present(swapchain: IDXGISwapChain, sync_interval: u32, flags: u3
         // Apply our pipeline state (avoid forcing viewport/state beyond what we restore)
         ctx.OMSetBlendState(&state.blend_state, Some(&state.blend_factor), 0xffffffff);
         ctx.OMSetRenderTargets(Some(&[state.render_target_view.clone()]), None);
-        // Ensure viewport equals backbuffer size to prevent overflow
-        ctx.RSSetViewports(Some(&[state.viewport]));
+        // Do not override host viewport to avoid stretching/flicker
         ctx.VSSetShader(&state.vertex_shader, None);
         ctx.PSSetShader(&state.pixel_shader, None);
         ctx.PSSetShaderResources(
@@ -338,6 +372,7 @@ fn initialize_overlay_state(swapchain: &IDXGISwapChain) {
         },
         render_target_view: create_render_target_view(swapchain, &device),
         blend_factor: [0.0f32, 0.0f32, 0.0f32, 0.0f32],
+        last_texture_handles: [0, 0],
     };
     let overlay_state = OVERLAY_STATE.get_or_init(|| Mutex::new(None));
     if let Ok(mut lock) = overlay_state.lock() {
