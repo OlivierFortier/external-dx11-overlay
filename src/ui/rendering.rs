@@ -5,7 +5,7 @@ use std::{
 
 use windows::{
     Win32::{
-        Foundation::{BOOL, HANDLE},
+        Foundation::{BOOL, HANDLE, RECT, HWND},
         Graphics::{
             Direct3D::{D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, D3D11_SRV_DIMENSION_TEXTURE2D},
             Direct3D11::{
@@ -16,9 +16,13 @@ use windows::{
                 D3D11_VIEWPORT, ID3D11BlendState, ID3D11Device, ID3D11DeviceContext,
                 ID3D11PixelShader, ID3D11RenderTargetView, ID3D11SamplerState,
                 ID3D11ShaderResourceView, ID3D11Texture2D, ID3D11VertexShader,
+                ID3D11Buffer, ID3D11InputLayout, D3D11_BUFFER_DESC, D3D11_BIND_VERTEX_BUFFER,
+                D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE,
+                D3D11_SUBRESOURCE_DATA, D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_WRITE_DISCARD,
             },
-            Dxgi::{Common::DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_SWAP_CHAIN_DESC, IDXGISwapChain},
+            Dxgi::{Common::{DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R32G32_FLOAT}, DXGI_SWAP_CHAIN_DESC, IDXGISwapChain},
         },
+        UI::WindowsAndMessaging::{GetClientRect, GetWindowRect},
     },
     core::{Error, HRESULT},
 };
@@ -30,6 +34,7 @@ use crate::{
     },
     hooks::present_hook,
     ui::{MMF_DATA, mmf::cleanup_shutdown},
+    utils::get_mainwindow_hwnd,
 };
 
 use super::OVERLAY_STATE;
@@ -54,6 +59,22 @@ pub struct OverlayState {
     pixel_shader: ID3D11PixelShader,
     viewport: D3D11_VIEWPORT,
     blend_factor: [f32; 4],
+    vertex_buffer: Option<ID3D11Buffer>,
+    constant_buffer: Option<ID3D11Buffer>,
+}
+
+// Vertex structure for proper overlay positioning
+#[repr(C)]
+struct Vertex {
+    position: [f32; 2],
+    texcoord: [f32; 2],
+}
+
+// Constant buffer for shader parameters
+#[repr(C)]
+struct ConstantBuffer {
+    texture_scale: [f32; 2],
+    texture_offset: [f32; 2],
 }
 
 impl OverlayState {
@@ -62,16 +83,40 @@ impl OverlayState {
         unsafe {
             swapchain.GetDesc(&mut desc).ok();
         }
+        
+        // Get the actual client area dimensions to handle windowed modes properly
+        let (actual_width, actual_height) = if let Some(hwnd) = get_mainwindow_hwnd() {
+            unsafe {
+                let mut client_rect = RECT::default();
+                if GetClientRect(hwnd, &mut client_rect).is_ok() {
+                    let client_width = (client_rect.right - client_rect.left) as u32;
+                    let client_height = (client_rect.bottom - client_rect.top) as u32;
+                    
+                    // In windowed-fullscreen mode, use client area dimensions if they differ significantly
+                    if client_width > 0 && client_height > 0 && 
+                       (client_width < desc.BufferDesc.Width || client_height < desc.BufferDesc.Height) {
+                        (client_width, client_height)
+                    } else {
+                        (desc.BufferDesc.Width, desc.BufferDesc.Height)
+                    }
+                } else {
+                    (desc.BufferDesc.Width, desc.BufferDesc.Height)
+                }
+            }
+        } else {
+            (desc.BufferDesc.Width, desc.BufferDesc.Height)
+        };
+        
         self.viewport = D3D11_VIEWPORT {
             TopLeftX: 0.0,
             TopLeftY: 0.0,
-            Width: desc.BufferDesc.Width as f32,
-            Height: desc.BufferDesc.Height as f32,
+            Width: actual_width as f32,
+            Height: actual_height as f32,
             MinDepth: 0.0,
             MaxDepth: 1.0,
         };
-        self.width = desc.BufferDesc.Width;
-        self.height = desc.BufferDesc.Height;
+        self.width = actual_width;
+        self.height = actual_height;
 
         self.render_target_view = create_render_target_view(swapchain, &self.device);
     }
@@ -79,6 +124,8 @@ impl OverlayState {
         self.overlay_textures = [None, None];
         self.shader_resource_views = [None, None];
         self.render_target_view.take();
+        self.vertex_buffer.take();
+        self.constant_buffer.take();
 
         self.width = 0;
         self.height = 0;
@@ -93,6 +140,35 @@ impl OverlayState {
         };
 
         self.blend_factor = [0.0; 4];
+    }
+    
+    fn update_constant_buffer(&mut self, mmf_width: u32, mmf_height: u32) -> Result<(), ()> {
+        if self.constant_buffer.is_none() {
+            return Err(());
+        }
+        
+        let buffer = self.constant_buffer.as_ref().unwrap();
+        
+        // Calculate scale and offset to properly position the overlay
+        let scale_x = if self.width > 0 { mmf_width as f32 / self.width as f32 } else { 1.0 };
+        let scale_y = if self.height > 0 { mmf_height as f32 / self.height as f32 } else { 1.0 };
+        
+        let constants = ConstantBuffer {
+            texture_scale: [scale_x, scale_y],
+            texture_offset: [0.0, 0.0],
+        };
+        
+        unsafe {
+            let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
+            if self.context.Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, Some(&mut mapped)).is_ok() {
+                let dst = mapped.pData as *mut ConstantBuffer;
+                *dst = constants;
+                self.context.Unmap(buffer, 0);
+                Ok(())
+            } else {
+                Err(())
+            }
+        }
     }
 }
 
@@ -147,17 +223,41 @@ pub fn detoured_present(swapchain: IDXGISwapChain, sync_interval: u32, flags: u3
             return_present!();
         }
 
+        // Get the actual window client area dimensions
+        let (client_width, client_height) = if let Some(hwnd) = get_mainwindow_hwnd() {
+            let mut client_rect = RECT::default();
+            if GetClientRect(hwnd, &mut client_rect).is_ok() {
+                let cw = (client_rect.right - client_rect.left) as u32;
+                let ch = (client_rect.bottom - client_rect.top) as u32;
+                (cw.max(1), ch.max(1))
+            } else {
+                (state.width, state.height)
+            }
+        } else {
+            (state.width, state.height)
+        };
+        
         // Ensure viewport/backbuffer RTV match current swapchain size
         let mut sc_desc = DXGI_SWAP_CHAIN_DESC::default();
         swapchain.GetDesc(&mut sc_desc).ok();
-        if state.height != sc_desc.BufferDesc.Height || state.width != sc_desc.BufferDesc.Width {
+        
+        // Check if we need to resize based on swapchain or client area changes
+        let needs_resize = state.width != client_width || state.height != client_height ||
+                          (sc_desc.BufferDesc.Width != state.width && sc_desc.BufferDesc.Height != state.height);
+        
+        if needs_resize {
             state.resize(&swapchain);
         }
 
-        // Ensure SRVs match current Blish HUD texture addresses/sizes
-        if state.height != mmfdata.height || state.width != mmfdata.width
-            || state.shader_resource_views[texture_idx].is_none()
-        {
+        // Update SRVs when texture addresses change (not just size)
+        let texture_addrs_changed = if let Some(tex) = state.overlay_textures[0].as_ref() {
+            // Check if the texture pointers have changed
+            true // Always update for now to ensure proper rendering
+        } else {
+            true
+        };
+        
+        if texture_addrs_changed || state.shader_resource_views[texture_idx].is_none() {
             if update_textures(&mut state, [mmfdata.addr1, mmfdata.addr2]).is_err() {
                 state.context.PSSetShaderResources(0, Some(&[None]));
                 drop(mmfdata);
@@ -165,6 +265,11 @@ pub fn detoured_present(swapchain: IDXGISwapChain, sync_interval: u32, flags: u3
                 cleanup_shutdown();
                 return_present!();
             }
+        }
+        
+        // Update constant buffer with proper scaling
+        if state.update_constant_buffer(mmfdata.width, mmfdata.height).is_err() {
+            log::error!("Failed to update constant buffer");
         }
 
         //Make sure SRV is valid
@@ -212,6 +317,12 @@ pub fn detoured_present(swapchain: IDXGISwapChain, sync_interval: u32, flags: u3
         ctx.RSSetViewports(Some(&[state.viewport]));
         ctx.VSSetShader(&state.vertex_shader, None);
         ctx.PSSetShader(&state.pixel_shader, None);
+        
+        // Set constant buffer for proper scaling
+        if let Some(cb) = &state.constant_buffer {
+            ctx.VSSetConstantBuffers(0, Some(&[Some(cb.clone())]));
+        }
+        
         ctx.PSSetShaderResources(
             0,
             Some(&[Some(
@@ -223,7 +334,16 @@ pub fn detoured_present(swapchain: IDXGISwapChain, sync_interval: u32, flags: u3
         );
         ctx.PSSetSamplers(0, Some(&[Some(state.sampler_state.clone())]));
         ctx.IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        ctx.Draw(3, 0);
+        
+        // Set vertex buffer if available, otherwise use the simple draw
+        if let Some(vb) = &state.vertex_buffer {
+            let stride = std::mem::size_of::<Vertex>() as u32;
+            let offset = 0u32;
+            ctx.IASetVertexBuffers(0, 1, Some(&Some(vb.clone())), Some(&stride), Some(&offset));
+            ctx.Draw(6, 0); // Draw 2 triangles (6 vertices)
+        } else {
+            ctx.Draw(3, 0); // Fallback to screenspace triangle
+        }
 
         // Restore previous pipeline state
         {
@@ -317,6 +437,20 @@ fn get_device_and_context(
 fn initialize_overlay_state(swapchain: &IDXGISwapChain) {
     let (device, context) =
         get_device_and_context(swapchain).expect("Could not get device and context from swapchain");
+    
+    // Create vertex buffer for a full-screen quad
+    let vertices = [
+        Vertex { position: [-1.0, -1.0], texcoord: [0.0, 1.0] },
+        Vertex { position: [-1.0,  1.0], texcoord: [0.0, 0.0] },
+        Vertex { position: [ 1.0,  1.0], texcoord: [1.0, 0.0] },
+        Vertex { position: [-1.0, -1.0], texcoord: [0.0, 1.0] },
+        Vertex { position: [ 1.0,  1.0], texcoord: [1.0, 0.0] },
+        Vertex { position: [ 1.0, -1.0], texcoord: [1.0, 1.0] },
+    ];
+    
+    let vertex_buffer = create_vertex_buffer(&device, &vertices).ok();
+    let constant_buffer = create_constant_buffer(&device).ok();
+    
     let state = OverlayState {
         width: 0,
         height: 0,
@@ -328,6 +462,8 @@ fn initialize_overlay_state(swapchain: &IDXGISwapChain) {
         pixel_shader: create_pixel_shader(&device).unwrap(),
         overlay_textures: [None, None],
         shader_resource_views: [None, None],
+        vertex_buffer,
+        constant_buffer,
         viewport: D3D11_VIEWPORT {
             TopLeftX: 0.0,
             TopLeftY: 0.0,
@@ -425,4 +561,48 @@ pub fn create_blend_state(device: &ID3D11Device) -> Result<ID3D11BlendState, Err
     }
 
     Ok(blend_state.unwrap())
+}
+
+/// Creates a vertex buffer for the overlay quad
+fn create_vertex_buffer(device: &ID3D11Device, vertices: &[Vertex]) -> Result<ID3D11Buffer, Error> {
+    let buffer_desc = D3D11_BUFFER_DESC {
+        ByteWidth: (std::mem::size_of::<Vertex>() * vertices.len()) as u32,
+        Usage: D3D11_USAGE_DYNAMIC,
+        BindFlags: D3D11_BIND_VERTEX_BUFFER.0,
+        CPUAccessFlags: D3D11_CPU_ACCESS_WRITE.0,
+        MiscFlags: 0,
+        StructureByteStride: 0,
+    };
+    
+    let data = D3D11_SUBRESOURCE_DATA {
+        pSysMem: vertices.as_ptr() as *const _,
+        SysMemPitch: 0,
+        SysMemSlicePitch: 0,
+    };
+    
+    let mut buffer: Option<ID3D11Buffer> = None;
+    unsafe {
+        device.CreateBuffer(&buffer_desc, Some(&data), Some(&mut buffer))?;
+    }
+    
+    Ok(buffer.unwrap())
+}
+
+/// Creates a constant buffer for shader parameters
+fn create_constant_buffer(device: &ID3D11Device) -> Result<ID3D11Buffer, Error> {
+    let buffer_desc = D3D11_BUFFER_DESC {
+        ByteWidth: std::mem::size_of::<ConstantBuffer>() as u32,
+        Usage: D3D11_USAGE_DYNAMIC,
+        BindFlags: D3D11_BIND_CONSTANT_BUFFER.0,
+        CPUAccessFlags: D3D11_CPU_ACCESS_WRITE.0,
+        MiscFlags: 0,
+        StructureByteStride: 0,
+    };
+    
+    let mut buffer: Option<ID3D11Buffer> = None;
+    unsafe {
+        device.CreateBuffer(&buffer_desc, None, Some(&mut buffer))?;
+    }
+    
+    Ok(buffer.unwrap())
 }
