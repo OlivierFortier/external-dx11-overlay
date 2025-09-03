@@ -43,8 +43,8 @@ pub fn dump_debug_data() {
         let state = OVERLAY_STATE.get().unwrap();
         let mut state_lock_opt = state.lock().unwrap();
         let state_lock = state_lock_opt.as_mut().unwrap();
-        log::info!("  Width: {}", state_lock.width);
-        log::info!("  Height: {}", state_lock.height);
+        log::info!("  BackbufferWidth: {}", state_lock.backbuffer_width);
+        log::info!("  BackbufferHeight: {}", state_lock.backbuffer_height);
         log::info!("Attempting to reset OVERLAY_STATE");
         *state_lock_opt = None;
     }
