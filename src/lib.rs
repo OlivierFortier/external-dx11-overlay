@@ -163,12 +163,8 @@ fn attach(handle: HINSTANCE) {
                     .unwrap();
             }
 
-            // Services and input/keybinds under Nexus
-            // We avoid focus grabbing inside wndproc when built with the nexus feature.
+            // Services under Nexus. Input and standalone keybinds are owned by Nexus and should not be hooked here.
             start_statistics_server();
-            init_keybinds();
-            start_mouse_input_thread();
-            initialize_controls(mainwindow_hwnd);
         }
     });
 }
