@@ -11,7 +11,7 @@ path = "src/lib.rs"
 crate-type = ["cdylib"]
 
 [features]
-default =[]
+default =["nexus"]
 # Enable Nexus integration (and its UI file dialog) when the `nexus` feature is set
 nexus = ["dep:nexus", "dep:rfd"]
 
