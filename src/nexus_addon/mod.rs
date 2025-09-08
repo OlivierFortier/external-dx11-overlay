@@ -18,7 +18,6 @@ use crate::nexus_addon::{nexus_load, nexus_unload};
 */
 
 pub mod init;
-pub mod manager;
 pub mod ui;
 
 pub use init::{nexus_load, nexus_unload};

@@ -198,7 +198,7 @@ fn enable_logging() {
 // ======= Nexus export - only compiled when building for nexus =============
 #[cfg(feature = "nexus")]
 nexus::export! {
-    name: "Blish HUD overlay loader",
+    name: "External DX11 overlay runner",
     signature: -0x7A8B9C2D,
     load: nexus_addon::nexus_load,
     unload: nexus_addon::nexus_unload,
