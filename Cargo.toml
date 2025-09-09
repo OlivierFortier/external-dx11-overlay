@@ -1,7 +1,7 @@
 [workspace]
 members = [
     ".",
-    "nexus-integration",
+    "nexus_integration",
 ]
 
 [package]
@@ -21,7 +21,7 @@ crate-type = ["cdylib", "rlib"]
 [features]
 default = ["nexus"]
 # Build as a Nexus addon: enables export in main crate and links the subcrate
-nexus = ["dep:nexus", "dep:nexus-integration"]
+nexus = ["dep:nexus", "dep:nexus_integration"]
 
 [dependencies]
 retour = { version="0.3.1", features=["static-detour"]}
@@ -29,7 +29,7 @@ log = "0.4"
 fern = "0.7"
 chrono = "*"
 fontdue = "*"
-nexus-integration = { path = "./nexus-integration", optional = true }
+nexus_integration = { path = "./nexus_integration", optional = true }
 nexus = { git = "https://github.com/zerthox/nexus-rs", features = ["log", "log_filter"], optional = true }
 
 [dependencies.windows]

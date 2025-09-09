@@ -6,7 +6,7 @@ Provides the main entry points for the addon lifecycle and orchestrates setup of
 
 */
 
-use crate::nexus_addon::{NexusError, Result, ui};
+use crate::nexus_integration::{NexusError, Result, ui};
 use nexus::{
     keybind::register_keybind_with_string,
     keybind_handler,

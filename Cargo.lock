@@ -143,7 +143,7 @@ dependencies = [
  "fontdue",
  "log",
  "nexus",
- "nexus-integration",
+ "nexus_integration",
  "retour",
  "windows 0.56.0",
 ]
@@ -320,14 +320,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nexus-integration"
-version = "0.1.0"
-dependencies = [
- "log",
- "nexus",
-]
-
-[[package]]
 name = "nexus_codegen"
 version = "0.3.0"
 source = "git+https://github.com/zerthox/nexus-rs#a7beaab2ac29cc8d78b6d2cd32e1bd8f920ac16f"
@@ -338,6 +330,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "nexus_integration"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "nexus",
 ]
 
 [[package]]
