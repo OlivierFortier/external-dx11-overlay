@@ -44,17 +44,10 @@ Figuring out which component is causing the issue makes troubleshooting much eas
 
 If you're having issues with Nexus integration, you can temporarily switch back to the traditional method:
 
-1. Use the traditional setup process from the [Simple User Guide](../../Simple-User-Guide.md).
-2. This can help determine if the issue is with your BlishHUD setup or the Nexus integration specifically
-
-### BlishHUD is the problem. Now what?
-
-- Try running BlishHUD itself directly in a terminal and inspect the output. ``WINEPREFIX=YOURPREFIX ./PATH_TO_BLISH_HUD.exe`` with YOURPREFIX being the same wine prefix you use to launch the loader with.
-- If you see a ``mscoree.dll not found`` type error, it is likely related to dotnet48 being missing or corrupted. See the installation guide on how to install it. If it's corrupted, you may need to create a new prefix instead.
-- You can also look for BlishHUD logs found in LOADER_public/logs/BlishHUD-xxxxxxx
-- The original Blish logs (unrelated to this, but could be helpful sometimes) can be found inside your wine prefix, in ``drive_c/users/MYUSER/Documents/Guild Wars 2/addons/blishhud/logs``
-
-If it did not help, or if you are now left with some sort of an error, report an issue here on github, or ask on the blishhud discord. Make sure to include as much information as you managed to gather.
+1. Backup your current addons directory to keep your Nexus addons setup safe.
+2. Uninstall Nexus.
+3. Use the traditional setup process from the [Simple User Guide](../../Simple-User-Guide.md).
+4. This can help determine if the issue is with your BlishHUD setup or the Nexus integration specifically
 
 ### The DLL is the problem. Now what?
 
@@ -78,14 +71,6 @@ From there, open an issue on github or ask for help on the blishhud discord, or 
 
 ## Common Issues / Things to verify
 
-- Make sure you extracted the zip file in the right directory. You should see the following path: path_to_gw2/addons/LOADER_public/Gw2-Simple-Addon-Loader.exe
-- Make sure you are running the game with the latest proton version (on linux). You may also want to have the same proton version for both the game AND the loader on steam. If you are not using steam, you can still use proton via UMU, now used by default on lutris.
-- Make sure steam is set to use a **specific** version of proton, as the steam global one may not apply and/or cause issues.
-- If for whatever reason Blish asks you for an update, do **NOT** update it. For now, the only way to update it is to download a new release from this repo. Modules themselves may still be updated freely.
-- If you are using the Event Table module, it needs a specific version that works with WINE, you cannot use the normal one.
-- Issues installing dotnet48. First, make sure this is required to begin with, it usually is not. If it tells you it's already installed or a more recent version exists but it still does not work, try making a new prefix and installing dotnet48 into that fresh one. If you get error messages related to 32/64 bits, this is normal, just ignore.
-- Crash when launching Blish due to Shared Textures not being supported. To solve, simply use DXVK (not DXMT and others) version 1.10.1 or more recent.
-
 **Nexus Integration specific:**
 
 - Ensure you're using the correct DLL and not the standard build.
@@ -93,20 +78,10 @@ From there, open an issue on github or ask for help on the blishhud discord, or 
 - Check that the addon appears in Nexus's addon list (if it doesn't appear, the DLL might be in the wrong location, corrupted or you're using the wrong DLL)
 - If the configuration window doesn't open with ALT+SHIFT+1, check for keybind conflicts with GW2 or other addons, or change it in the Nexus settings. Anyway the menu icon should still work even if the keybind doesn't.
 
-## Known issues
-
-These are some known issues that are being worked on. This **may be outdated**. For more information, look at the issues page.
-
-- Performance issues, especially when actively using Pathing.
-- A variety of crashes on the Blish side.
-- No audio
-- Issues and crashes adding api-key and enabling modules. This can be brute-forced until it works..
-- Potential incompatibilities with reshade.
-
-### Nexus-specific Known issues
+## Nexus-specific Known issues
 
 - Unloading the addon while the game is running causes a crash and potentially a memory leak. This is normal as it is not properly implemented yet.
 
-#### Windows-specific: :
+### Windows-specific:
 - Doesn't really work with windowed mode. Often creates a black screen with the nexus UI flickering.
 - Weird scaling issue on fullscreen-windowed mode. The game and overlay works but sometimes the game can get stretched outside the screen and the event listener areas (where you click) are offset from where the actual UI is.

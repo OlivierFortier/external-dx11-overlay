@@ -6,7 +6,7 @@ Provides the main entry points for the addon lifecycle and orchestrates setup of
 
 */
 
-use crate::nexus_integration::{NexusError, Result, ui};
+use crate::{NexusError, Result, ui};
 use nexus::{
     keybind::register_keybind_with_string,
     keybind_handler,
@@ -15,6 +15,7 @@ use nexus::{
     texture::{RawTextureReceiveCallback, load_texture_from_memory},
     texture_receive,
 };
+use std::fs;
 use windows::Win32::{Foundation::HINSTANCE, System::LibraryLoader::GetModuleHandleW};
 
 /// Returns the HMODULE and casts it into HINSTANCE
@@ -24,10 +25,10 @@ fn get_hinstance() -> HINSTANCE {
 }
 
 /// Nexus addon load function - entry point
-pub fn nexus_load() {
+pub fn nexus_load(attach_function: fn(HINSTANCE)) {
     log::info!("Loading External DX11 overlay loader addon");
 
-    if let Err(e) = initialize_nexus_addon() {
+    if let Err(e) = initialize_nexus_addon(attach_function) {
         log::error!("Failed to initialize nexus addon: {e}");
         return;
     }
@@ -35,10 +36,9 @@ pub fn nexus_load() {
     log::info!("External DX11 overlay loader addon loaded successfully");
 }
 
-fn initialize_nexus_addon() -> Result<()> {
+fn initialize_nexus_addon(attach_function: fn(HINSTANCE)) -> Result<()> {
     // Initialize the nexus menus and options
     // Create the addon dir if it doesn't exist
-    use std::fs;
 
     let addon_dir = get_addon_dir("LOADER_public").ok_or_else(|| {
         NexusError::ManagerInitialization("Failed to get addon directory".to_string())
@@ -56,7 +56,7 @@ fn initialize_nexus_addon() -> Result<()> {
     // Start the main DLL functionality
     let hinstance = get_hinstance();
     log::info!("Loading via Nexus - HMODULE/HINSTANCE: {}", hinstance.0);
-    crate::attach(hinstance);
+    attach_function(hinstance);
 
     Ok(())
 }
@@ -120,10 +120,10 @@ fn setup_quick_access() -> Result<()> {
 }
 
 /// Nexus addon unload function - handles cleanup of all nexus-specific functionality
-pub fn nexus_unload() {
+pub fn nexus_unload(detach_function: fn()) {
     log::info!("Unloading External DX11 overlay runner addon");
     // Perform main cleanup
-    crate::detatch();
+    detach_function();
 
     log::info!("External DX11 overlay runner cleanup completed successfully");
 }

@@ -184,3 +184,27 @@ fn enable_logging() {
         "---------------------------------------- New Session ----------------------------------------------"
     );
 }
+
+// ================================== Nexus export ================================
+
+#[cfg(feature = "nexus")]
+fn nexus_load_wrapper() {
+    nexus_integration::nexus_load(attach);
+}
+
+#[cfg(feature = "nexus")]
+fn nexus_unload_wrapper() {
+    nexus_integration::nexus_unload(detatch);
+}
+
+#[cfg(feature = "nexus")]
+nexus::export! {
+    name: "External DX11 overlay runner",
+    signature: -0x7A8B9C2D,
+    load: nexus_load_wrapper,
+    unload: nexus_unload_wrapper,
+    flags: AddonFlags::None,
+    provider: nexus::UpdateProvider::GitHub,
+    update_link: "https://github.com/SorryQuick/external-dx11-overlay",
+    log_filter: "trace"
+}

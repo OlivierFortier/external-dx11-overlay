@@ -338,6 +338,7 @@ version = "0.1.0"
 dependencies = [
  "log",
  "nexus",
+ "windows 0.56.0",
 ]
 
 [[package]]

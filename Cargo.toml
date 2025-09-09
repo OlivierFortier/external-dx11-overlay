@@ -19,7 +19,7 @@ path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["nexus"]
+default = []
 # Build as a Nexus addon: enables export in main crate and links the subcrate
 nexus = ["dep:nexus", "dep:nexus_integration"]
 

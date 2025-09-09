@@ -27,7 +27,7 @@ There is an already compiled version of Blish HUD that is compatible with both t
 
 On Linux, you need to run the downloaded Blish HUD executable with the same wine prefix and binary as Guild Wars 2.
 
-As mentioned in the in-game UI, since you already use Nexus, it is recommended to use the [Gw2 Executable Runner](https://github.com/OlivierFortier/gw2-executable-runner) addon to run external programs such as Blish HUD from within the game. This is particularly useful for Linux and SteamOS users in Game Mode.
+As mentioned in the in-game UI, __since you already use Nexus__, it is recommended to use the [Gw2 Executable Runner](https://github.com/OlivierFortier/gw2-executable-runner) addon to run external programs such as Blish HUD from within the game. This is particularly useful for Linux and SteamOS users in Game Mode. You can use the link provided to download the addon, or grab it from the Nexus addon library.
 
 Once the Gw2 Executable Runner addon is installed, you can configure it to point to the Blish HUD executable you downloaded earlier. This way, you can launch Blish HUD directly from within Guild Wars 2. You can also configure it to launch Blish HUD automatically when you start the game.
 
