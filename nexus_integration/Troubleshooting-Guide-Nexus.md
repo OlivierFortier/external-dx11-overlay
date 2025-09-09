@@ -14,7 +14,7 @@ The first important step is understanding where the issue lies. There are differ
 3. **BlishHUD executable**
 4. **Nexus addon configuration**
 
-Figuring out which component is causing the issue makes troubleshooting much easier. If you're using Nexus integration, see the [Nexus Integration Troubleshooting](#nexus-integration-troubleshooting) section below.
+Figuring out which component is causing the issue makes troubleshooting much easier.
 
 ### Is Nexus Loading Properly?
 

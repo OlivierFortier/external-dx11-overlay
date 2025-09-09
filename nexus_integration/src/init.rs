@@ -84,8 +84,8 @@ fn setup_keybinds() -> Result<()> {
 }
 
 fn load_addon_textures() -> Result<()> {
-    let icon = include_bytes!("./images/64p_nexus_blish_loader.png");
-    let icon_hover = include_bytes!("./images/64p_nexus_blish_loader.png");
+    let icon = include_bytes!("../images/64p_nexus_blish_loader.png");
+    let icon_hover = include_bytes!("../images/64p_nexus_blish_loader.png");
 
     let receive_texture: RawTextureReceiveCallback = texture_receive!(|id, _texture| {
         log::info!("texture {id} loaded");
