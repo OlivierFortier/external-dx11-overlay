@@ -1,11 +1,11 @@
 [package]
-name = "nexus_integration"
+name = "nexus-integration"
 version = "0.1.0"
 edition = "2024"
 publish = false
 
 [lib]
-name = "nexus_integration"
+name = "nexus-integration"
 path = "src/lib.rs"
 crate-type = ["rlib"]
 
