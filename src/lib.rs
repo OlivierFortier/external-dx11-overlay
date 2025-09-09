@@ -19,9 +19,6 @@ use windows::Win32::{Foundation::HINSTANCE, System::LibraryLoader::FreeLibraryAn
 #[cfg(feature = "nexus")]
 use nexus::{self, AddonFlags};
 
-#[cfg(feature = "nexus")]
-pub mod nexus_addon;
-
 pub mod address_finder;
 pub mod controls;
 pub mod debug;
