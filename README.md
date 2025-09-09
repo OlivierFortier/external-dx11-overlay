@@ -46,7 +46,7 @@ cargo build --features nexus --release
 1. Build the project with the `nexus` feature enabled
 2. Place the resulting DLL in your Gw2 addons directory
 3. Launch Guild Wars 2 (don't forget to have Nexus installed)
-4. Enable the "Blish HUD overlay loader" addon in Nexus, in the **installed** addons tab
+4. Enable the "External DX11 overlay loader" addon in Nexus, in the **installed** addons tab
 5. Click the newly added icon (somewhere in the top-left of the screen) or use ALT+SHIFT+1 to open the configuration window
 6. Browse and select your BlishHUD executable
 7. Launch BlishHUD from the interface

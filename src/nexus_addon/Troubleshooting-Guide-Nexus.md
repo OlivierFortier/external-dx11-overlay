@@ -1,4 +1,4 @@
-# Troubleshooting Guide
+# Troubleshooting Guide - Nexus Integration
 
 This guide is meant to help debug issues as easily as possible. Common issue can be found towards the end. The two goals are as follows:
 
@@ -7,40 +7,14 @@ This guide is meant to help debug issues as easily as possible. Common issue can
 
 ## What is causing my issue?
 
-The first important step is understanding where the issue lies. There are different components depending on which method you're using:
+The first important step is understanding where the issue lies. There are different components involved in making this work.
 
-**Traditional Method (4 components):**
-
-1. The external-dx11-overlay dll
-2. The loader (Gw2-Simple-Addon-Loader)
-3. BlishHUD itself
-4. Manual configuration
-
-**Nexus Integration Method (4 components):**
-
-1. **Nexus framework** - The addon management system
-2. **The external-dx11-overlay dll** (Nexus version)
+1. **Nexus framework** - The addon loader & management system
+2. **The external_dx11_overlay_nexus.dll** (Nexus version)
 3. **BlishHUD executable**
 4. **Nexus addon configuration**
 
 Figuring out which component is causing the issue makes troubleshooting much easier. If you're using Nexus integration, see the [Nexus Integration Troubleshooting](#nexus-integration-troubleshooting) section below.
-
-### Steps to follow to pinpoint the failing part (if the issue itself lies in Blish not working/showing/loading)
-
-- Is the game loading? If not, then the problem is either the loader, or your steam/lutris setup.
-- Is the dll loaded? This can be verified by looking for a log in LOADER_public/logs/loader-xxxxxxx which should start with 'dll-' and with the date and time you launched the game at. The only way for this log to exist is if the dll was loaded in the first place, as it is the one creating the file.
-- Is BlishHUD running? This can be verified via top/ps/htop/btop or any task manager you might have. If it is running, there will typically be an icon in your tray, if you have one.
-
-Hopefully by following these steps you now know what part is failing.
-
-## Nexus Integration Troubleshooting
-
-If you're using the Nexus integration instead of the traditional method, the troubleshooting process is slightly different. There are now four potential failure points:
-
-1. **Nexus framework itself (will rarely be the case)**
-2. **The dll (Nexus version)**
-3. **The BlishHUD executable (same as previously)**
-4. **Nexus addon configuration**
 
 ### Is Nexus Loading Properly?
 
@@ -66,26 +40,12 @@ If you're using the Nexus integration instead of the traditional method, the tro
 - **Missing dependencies**: Verify dotnet48 or other requirements are met in your environment
 - **Incompatible BlishHUD version:** You cannot use the regular BlishHUD version from the official Blish website or github repo. You need to download a specific version, included in the zip file [in the &#34;releases&#34; of this repository](https://github.com/SorryQuick/external-dx11-overlay/releases). Alternatively you can compile it yourself from [this forked repository](https://github.com/SorryQuick/Blish-HUD).
 
-#### Nexus Integration Not Available
-
-- **Wrong DLL**: Ensure you're using the Nexus-enabled DLL, not the standard one
-- **Nexus not installed**: Verify Nexus is properly installed and running
-
 ### Switching Between Methods
 
 If you're having issues with Nexus integration, you can temporarily switch back to the traditional method:
 
-1. Use the traditional setup process from the Simple User Guide
+1. Use the traditional setup process from the [Simple User Guide](../../Simple-User-Guide.md).
 2. This can help determine if the issue is with your BlishHUD setup or the Nexus integration specifically
-
-### The loader is the problem. Now what?
-
-- First, check the logs at LOADER_public/logs/loader-xxxxxxx. If something major happened, it should be there.
-- Try looking for the direct terminal logs. Eg. the Show Logs button on lutris.
-- Try running it in the terminal and looking for errors. Eg. Go into the LOADER_public directory and run ``WINEPREFIX=YOURPREFIX ./Gw2-Simple-Addon-Loader.exe`` with YOURPREFIX being your wine prefix.
-- Try creating a new wine prefix instead. On steam, just remove the one in compatdata (Not the gw2 one, but the custom loader one. You can usually know which is it with the modify date)
-
-If it did not help, or if you are now left with some sort of an error, report an issue here on github, or ask on the blishhud discord. Make sure to include as much information as you managed to gather.
 
 ### BlishHUD is the problem. Now what?
 
@@ -145,5 +105,8 @@ These are some known issues that are being worked on. This **may be outdated**. 
 
 ### Nexus-specific Known issues
 
-- Doesn't really work with windowed mode. Often creates a black screen with the nexus UI flickering. (tested on Windows only, not tested on linux yet)
-- **WINDOWS-ONLY ISSUE** : Weird scaling issue on fullscreen-windowed mode. The game and overlay works but sometimes the game can get stretched outside the screen and the event listener areas (where you click) are offset from where the actual UI is.
+- Unloading the addon while the game is running causes a crash and potentially a memory leak. This is normal as it is not properly implemented yet.
+
+#### Windows-specific: :
+- Doesn't really work with windowed mode. Often creates a black screen with the nexus UI flickering.
+- Weird scaling issue on fullscreen-windowed mode. The game and overlay works but sometimes the game can get stretched outside the screen and the event listener areas (where you click) are offset from where the actual UI is.

@@ -31,16 +31,12 @@ pub fn render_main_window(ui: &Ui) {
     }
 }
 
-/// Renders the content inside the main window
 fn render_window_content(ui: &Ui) {
-    // render text to explain what the addon does. it should be brief.
-    ui.text_wrapped("This addon allows you to run an external overlay inside the game, such as Blish HUD.");
-    ui.separator();
+    ui.text_wrapped(
+        "This addon allows you to run an external overlay inside the game, such as Blish HUD.",
+    );
     ui.text_wrapped("Run a compatible overlay executable to get started.");
-    ui.separator();
-    // explain that it is recommended to use my other addon called "Gw2 executable loader" to easily run external programs such as blish hud from within the game. and mention how it is particularly useful for steamos users in game mode.
-    ui.text_wrapped("It is recommended to use the 'Gw2 Executable Loader' addon to easily run external programs such as Blish HUD from within the game. This is particularly useful for SteamOS users in Game Mode.");
-    ui.separator();
+    ui.text_wrapped("It is recommended to use the 'Gw2 Executable Runner' addon to easily run external programs such as Blish HUD from within the game. This is particularly useful for SteamOS users in Game Mode.");
 }
 
 /// Toggles the main window visibility

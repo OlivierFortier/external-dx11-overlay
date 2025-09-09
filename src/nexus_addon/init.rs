@@ -8,7 +8,12 @@ Provides the main entry points for the addon lifecycle and orchestrates setup of
 
 use crate::nexus_addon::{NexusError, Result, ui};
 use nexus::{
-    keybind::register_keybind_with_string, keybind_handler, paths::get_addon_dir, quick_access::add_quick_access, texture::{load_texture_from_memory, RawTextureReceiveCallback}, texture_receive
+    keybind::register_keybind_with_string,
+    keybind_handler,
+    paths::get_addon_dir,
+    quick_access::add_quick_access,
+    texture::{RawTextureReceiveCallback, load_texture_from_memory},
+    texture_receive,
 };
 use windows::Win32::{Foundation::HINSTANCE, System::LibraryLoader::GetModuleHandleW};
 
@@ -20,14 +25,14 @@ fn get_hinstance() -> HINSTANCE {
 
 /// Nexus addon load function - entry point
 pub fn nexus_load() {
-    log::info!("Loading Blish HUD overlay loader addon");
+    log::info!("Loading External DX11 overlay loader addon");
 
     if let Err(e) = initialize_nexus_addon() {
         log::error!("Failed to initialize nexus addon: {e}");
         return;
     }
 
-    log::info!("Blish HUD overlay loader addon loaded successfully");
+    log::info!("External DX11 overlay loader addon loaded successfully");
 }
 
 fn initialize_nexus_addon() -> Result<()> {
@@ -106,7 +111,7 @@ fn setup_quick_access() -> Result<()> {
         "BLISH_OVERLAY_LOADER_ICON",
         "BLISH_OVERLAY_LOADER_ICON_HOVER",
         "BLISH_OVERLAY_LOADER_KEYBIND",
-        "Blish HUD overlay loader",
+        "External DX11 overlay loader",
     )
     .revert_on_unload();
 

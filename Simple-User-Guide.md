@@ -73,65 +73,6 @@ From here, "Install an application" -> "Cancel" -> "Install a Windows DLL or com
 
 If you are **not** using steam, do the same thing, but instead of using protontricks, run ``WINEPREFIX=your_prefix winetricks``.
 
-# Nexus Integration (Alternative Method)
-
-If you prefer a simpler installation process, this project also supports integration with the [Nexus](https://github.com/zerthox/nexus) Addon Loader & Manager. This method provides a user-friendly interface and automatic management of new updates to the addon as well as a growing library of multiple addons.
-
-## Nexus Setup Steps
-
-### Step 1: Install Nexus
-
-First, download and install Nexus Addon Loader & Manager from the [official website](https://raidcore.gg/Nexus). Follow their installation instructions for your platform.
-
-### Step 2: Download the Nexus DLL
-
-Go to the [release section](https://github.com/SorryQuick/external-dx11-overlay/releases) of this repository and download the latest Nexus-enabled DLL file from the releases.
-
-### Step 3: Download the right Blish HUD version
-
-Go to the [release section](https://github.com/SorryQuick/external-dx11-overlay/releases) of this repository and download the external-dx11-overlay.zip file. There is an already compiled version of Blish HUD that is compatible with both the Nexus version and the regular version.
-
-### Step 3: Install the Addon
-
-1. Copy the downloaded DLL to your Gw2 addons directory
-2. Launch Guild Wars 2 with Nexus enabled
-
-### Step 4: Configure BlishHUD
-
-1. Once in-game, enable the "Blish HUD overlay loader" addon in Nexus. It should appear in the "installed" tab.
-2. A new icon will appear next to the Nexus icon. Clicking it will open the menu to manage Blish.
-3. Click "Browse for Executable..." and select your compatible BlishHUD executable file. You can place the blish executable and folder anywhere, but it's strongly recommended to put it in the Gw2 addons folder for easy access.
-4. Check "Launch on Startup" if you want BlishHUD to start automatically next time you start the game.
-5. Click "Launch" to start BlishHUD
-
-## Advantages of Nexus Integration
-
-- **No Manual DLL Injection**: Nexus handles loading automatically
-- **Graphical Interface**: Point-and-click configuration instead of text files
-- **Automatic Updates**: Automatic updates when new versions are available
-- **Integrated Management**: All your GW2 addons in one place
-
-## Nexus vs Traditional Method
-
-| Aspect                    | Nexus Method                                 | Traditional Method                 |
-| ------------------------- | -------------------------------------------- | ---------------------------------- |
-| **Installation**    | Drop DLL in Nexus addons folder              | Extract ZIP and configure manually |
-| **Configuration**   | GUI with file browser                        | Edit text files manually           |
-| **Startup**         | Automatic via Nexus. Just start Gw2 normally | Run separate loader executable     |
-| **User Experience** | More user-friendly                           | More technical setup required      |
-
-## Switching from Traditional to Nexus
-
-If you're already using the traditional method and want to switch to Nexus:
-
-1. Download the Nexus-enabled DLL from the [releases section](https://github.com/SorryQuick/external-dx11-overlay/releases)
-2. Install Nexus if you haven't already
-3. Copy the downloaded DLL to your Gw2 addons directory
-4. Disable/remove the traditional loader setup
-5. Enable the addon in Nexus and configure as described
-
-Your existing BlishHUD installation and configuration will continue to work - only the loading method changes.
-
 # Troubleshoot
 
 See this [troubleshooting guide](https://github.com/SorryQuick/external-dx11-overlay/blob/master/Troubleshooting-Guide.md).

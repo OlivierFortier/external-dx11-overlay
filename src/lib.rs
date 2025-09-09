@@ -12,14 +12,9 @@ use std::{
 };
 use ui::mmf::start_mmf_thread;
 use utils::{get_base_addr_and_size, get_mainwindow_hwnd};
-use windows::Win32::{
-    Foundation::HINSTANCE,
-    System::{
-        LibraryLoader::FreeLibraryAndExitThread
-    },
-};
 #[cfg(not(feature = "nexus"))]
-use windows::Win32::System::SystemServices::{DLL_PROCESS_DETACH, DLL_PROCESS_ATTACH};
+use windows::Win32::System::SystemServices::{DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH};
+use windows::Win32::{Foundation::HINSTANCE, System::LibraryLoader::FreeLibraryAndExitThread};
 
 #[cfg(feature = "nexus")]
 use nexus::{self, AddonFlags};
@@ -86,33 +81,32 @@ fn attach(handle: HINSTANCE) {
             module_size: size,
         };
 
-            let present_addr = address_finder.find_addr_present();
+        let present_addr = address_finder.find_addr_present();
 
-            if present_addr == 0 {
-                log::error!("Could not find the address of DirectX11 Present.");
-                unsafe { FreeLibraryAndExitThread(HINSTANCE { 0: handle.0 }, 0) };
-            }
+        if present_addr == 0 {
+            log::error!("Could not find the address of DirectX11 Present.");
+            unsafe { FreeLibraryAndExitThread(HINSTANCE { 0: handle.0 }, 0) };
+        }
 
-            unsafe {
-                present_hook
-                    .initialize(
-                        mem::transmute(present_addr as *const ()),
-                        ui::get_detoured_present(),
-                    )
-                    .unwrap()
-                    .enable()
-                    .unwrap();
-            }
+        unsafe {
+            present_hook
+                .initialize(
+                    mem::transmute(present_addr as *const ()),
+                    ui::get_detoured_present(),
+                )
+                .unwrap()
+                .enable()
+                .unwrap();
+        }
 
         unsafe { HANDLE_NO = handle.0 as u64 };
 
-            start_statistics_server();
-            init_keybinds();
+        start_statistics_server();
+        init_keybinds();
 
-            //MUST BE CALLED IN THIS ORDER
-            start_mouse_input_thread();
-            initialize_controls(mainwindow_hwnd);
-
+        //MUST BE CALLED IN THIS ORDER
+        start_mouse_input_thread();
+        initialize_controls(mainwindow_hwnd);
     });
 }
 
@@ -124,7 +118,6 @@ fn detatch() {
 }
 fn enable_logging() {
     let file = {
-
         let logs_dir = PathBuf::from("addons/LOADER_public/logs");
 
         create_dir_all(&logs_dir).expect("Failed to create logs directory");
