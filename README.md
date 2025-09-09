@@ -2,6 +2,10 @@
 Allows an external overlay to render inside a game as a DX11 render hook. Originally made for BlishHUD and Guild Wars 2.
 It can easily be changed to work for any game with any overlay.
 
+# Nexus integration
+This project also supports integration with the [Nexus Addon Loader & Manager](https://raidcore.gg/Nexus).
+Refer to the [Nexus Integration (Alternative Loader)](./nexus_integration/README.md) documentation for more details.
+
 # How to use
 For simple steps without having to compile anything: see https://github.com/SorryQuick/external-dx11-overlay/blob/master/Simple-User-Guide.md
 
@@ -13,10 +17,6 @@ There are four steps to make this work.
   ```WINEFSYNC=1 WINEPREFIX=<prefix> <wine binary> "Blish HUD.exe"```. With the same prefix and wine binary you used to launch the game (eg proton's wine binary).
 - You need to load this DLL into the game's process. It will react well with any LoadLibraryW loader. You can also just google or search github for any dll injector out there and run it in the same prefix just like Blish. Eventually, this could support existing loaders like arcdps. I've been using https://github.com/SorryQuick/Gw2-Simple-Addon-Loader
 - Texture Sharing must be enabled. Usually this means with proton and a recent version of DXVK.
-
-# Nexus integration
-This project also supports integration with the [Nexus Addon Loader & Manager](https://raidcore.gg/Nexus).
-Refer to the [Nexus Integration (Alternative Loader)](./nexus_integration/README.md) documentation for more details.
 
 # Current status
 A lot of the core issues have been solved and it should now work pretty well.
