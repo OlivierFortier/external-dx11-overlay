@@ -135,7 +135,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
-name = "external_dx11_overlay"
+name = "external-dx11-overlay"
 version = "0.2.0"
 dependencies = [
  "chrono",
@@ -143,7 +143,7 @@ dependencies = [
  "fontdue",
  "log",
  "nexus",
- "nexus-addon",
+ "nexus-integration",
  "retour",
  "windows 0.56.0",
 ]
@@ -320,7 +320,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nexus-addon"
+name = "nexus-integration"
 version = "0.1.0"
 dependencies = [
  "log",

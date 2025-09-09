@@ -1,7 +1,7 @@
 [workspace]
 members = [
     ".",
-    "nexus-addon",
+    "nexus-integration",
 ]
 
 [package]
@@ -29,7 +29,7 @@ log = "0.4"
 fern = "0.7"
 chrono = "*"
 fontdue = "*"
-"nexus-addon" = { path = "nexus-addon", optional = true }
+nexus-integration = { path = "./nexus-integration", optional = true }
 nexus = { git = "https://github.com/zerthox/nexus-rs", features = ["log", "log_filter"], optional = true }
 
 [dependencies.windows]
