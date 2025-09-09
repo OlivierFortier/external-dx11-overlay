@@ -14,7 +14,7 @@ description = "External DX11 Overlay - Render overlays such as Blish HUD inside 
 repository = "https://github.com/SorryQuick/external-dx11-overlay"
 
 [lib]
-name = "external-dx11-overlay"
+name = "external_dx11_overlay"
 path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 

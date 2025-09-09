@@ -5,7 +5,7 @@ edition = "2024"
 publish = false
 
 [lib]
-name = "nexus-integration"
+name = "nexus_integration"
 path = "src/lib.rs"
 crate-type = ["rlib"]
 
