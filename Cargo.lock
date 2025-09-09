@@ -143,6 +143,7 @@ dependencies = [
  "fontdue",
  "log",
  "nexus",
+ "nexus-addon",
  "retour",
  "windows 0.56.0",
 ]
@@ -316,6 +317,14 @@ dependencies = [
  "num_enum",
  "paste",
  "windows 0.61.3",
+]
+
+[[package]]
+name = "nexus-addon"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "nexus",
 ]
 
 [[package]]

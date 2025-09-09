@@ -1,0 +1,19 @@
+[package]
+name = "nexus-addon"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+name = "nexus_addon"
+path = "src/lib.rs"
+crate-type = ["rlib"]
+
+[dependencies]
+log = "0.4"
+# external_dx11_overlay = { path = "../", features = ["nexus"] }
+
+[dependencies.nexus]
+git = "https://github.com/zerthox/nexus-rs"
+features = ["log", "log_filter"]
+
