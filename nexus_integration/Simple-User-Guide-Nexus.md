@@ -10,7 +10,7 @@ First, download and install Nexus Addon Loader & Manager from the [official webs
 
 ### Step 2: Download the DLL (Nexus Version)
 
-Go to the [release section](https://github.com/SorryQuick/external-dx11-overlay/releases) of this repository and download the latest release. Inside the zip file, look for the dll file named `external_dx11_overlay_nexus.dll`. This is the version compiled with Nexus support.
+Go to the [release section](https://github.com/OlivierFortier/external-dx11-overlay/releases) of this repository and download the latest release. Inside the zip file, look for the dll file named `external_dx11_overlay_nexus.dll`. This is the version compiled with Nexus support.
 
 ### Step 3: Download the right Blish HUD version
 
