@@ -1,0 +1,29 @@
+[package]
+name = "nexus_integration"
+version = "0.1.0"
+edition = "2024"
+authors = ["SorryQuick", "0l1b0t"]
+publish = false
+
+[lib]
+name = "nexus_integration"
+path = "src/lib.rs"
+crate-type = ["rlib"]
+
+[features]
+default = []
+nexus = []
+
+[dependencies]
+log = "0.4"
+
+[dependencies.nexus]
+git = "https://github.com/zerthox/nexus-rs"
+features = ["log", "log_filter"]
+
+[dependencies.windows]
+version = "0.56"
+features = [
+    "Win32_Foundation",
+    "Win32_System_LibraryLoader",
+]

@@ -12,20 +12,12 @@ use std::{
 };
 use ui::mmf::start_mmf_thread;
 use utils::{get_base_addr_and_size, get_mainwindow_hwnd};
-use windows::Win32::{
-    Foundation::HINSTANCE,
-    System::{
-        LibraryLoader::FreeLibraryAndExitThread
-    },
-};
 #[cfg(not(feature = "nexus"))]
-use windows::Win32::System::SystemServices::{DLL_PROCESS_DETACH, DLL_PROCESS_ATTACH};
+use windows::Win32::System::SystemServices::{DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH};
+use windows::Win32::{Foundation::HINSTANCE, System::LibraryLoader::FreeLibraryAndExitThread};
 
 #[cfg(feature = "nexus")]
 use nexus::{self, AddonFlags};
-
-#[cfg(feature = "nexus")]
-pub mod nexus_addon;
 
 pub mod address_finder;
 pub mod controls;
@@ -86,33 +78,32 @@ fn attach(handle: HINSTANCE) {
             module_size: size,
         };
 
-            let present_addr = address_finder.find_addr_present();
+        let present_addr = address_finder.find_addr_present();
 
-            if present_addr == 0 {
-                log::error!("Could not find the address of DirectX11 Present.");
-                unsafe { FreeLibraryAndExitThread(HINSTANCE { 0: handle.0 }, 0) };
-            }
+        if present_addr == 0 {
+            log::error!("Could not find the address of DirectX11 Present.");
+            unsafe { FreeLibraryAndExitThread(HINSTANCE { 0: handle.0 }, 0) };
+        }
 
-            unsafe {
-                present_hook
-                    .initialize(
-                        mem::transmute(present_addr as *const ()),
-                        ui::get_detoured_present(),
-                    )
-                    .unwrap()
-                    .enable()
-                    .unwrap();
-            }
+        unsafe {
+            present_hook
+                .initialize(
+                    mem::transmute(present_addr as *const ()),
+                    ui::get_detoured_present(),
+                )
+                .unwrap()
+                .enable()
+                .unwrap();
+        }
 
         unsafe { HANDLE_NO = handle.0 as u64 };
 
-            start_statistics_server();
-            init_keybinds();
+        start_statistics_server();
+        init_keybinds();
 
-            //MUST BE CALLED IN THIS ORDER
-            start_mouse_input_thread();
-            initialize_controls(mainwindow_hwnd);
-
+        //MUST BE CALLED IN THIS ORDER
+        start_mouse_input_thread();
+        initialize_controls(mainwindow_hwnd);
     });
 }
 
@@ -124,7 +115,6 @@ fn detatch() {
 }
 fn enable_logging() {
     let file = {
-
         let logs_dir = PathBuf::from("addons/LOADER_public/logs");
 
         create_dir_all(&logs_dir).expect("Failed to create logs directory");
@@ -195,13 +185,24 @@ fn enable_logging() {
     );
 }
 
-// ======= Nexus export - only compiled when building for nexus =============
+// ================================== Nexus export ================================
+
+#[cfg(feature = "nexus")]
+fn nexus_load_wrapper() {
+    nexus_integration::nexus_load(attach);
+}
+
+#[cfg(feature = "nexus")]
+fn nexus_unload_wrapper() {
+    nexus_integration::nexus_unload(detatch);
+}
+
 #[cfg(feature = "nexus")]
 nexus::export! {
-    name: "Blish HUD overlay loader",
+    name: "External DX11 overlay runner",
     signature: -0x7A8B9C2D,
-    load: nexus_addon::nexus_load,
-    unload: nexus_addon::nexus_unload,
+    load: nexus_load_wrapper,
+    unload: nexus_unload_wrapper,
     flags: AddonFlags::None,
     provider: nexus::UpdateProvider::GitHub,
     update_link: "https://github.com/SorryQuick/external-dx11-overlay",

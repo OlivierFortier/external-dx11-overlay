@@ -1,24 +1,4 @@
-/*!
-# Nexus Addon Module
-
-This module serves as the central entry point for all Nexus-specific functionality.
-
-Import the main entry points for addon lifecycle management:
-
-```rust
-use crate::nexus_addon::{nexus_load, nexus_unload};
-```
-
-## Modules
-
-- [`manager`](src/nexus_addon/manager.rs): Executable management logic
-- [`ui`](src/nexus_addon/ui.rs): UI rendering components
-- [`init`](src/nexus_addon/init.rs): Initialization and cleanup routines
-
-*/
-
 pub mod init;
-pub mod manager;
 pub mod ui;
 
 pub use init::{nexus_load, nexus_unload};
